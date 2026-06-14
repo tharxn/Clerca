@@ -1,6 +1,7 @@
 package com.clerca.Backend.dto;
 
-import lombok.*;
+import lombok.Builder;
+import lombok.Getter;
 
 @Getter
 @Builder
@@ -9,4 +10,5 @@ public class AuthResponse {
     private String refreshToken;
     private String email;
     private String name;
+    private String picture;
 }

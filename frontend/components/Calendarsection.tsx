@@ -7,6 +7,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ArrowLeft, ChevronDown } from "lucide-react";
 import LoginModal from "./LoginModal";
 
+import { DATA_CLEARED_EVENT } from "@/components/SettingsModal";
+
 type CalendarSectionProps = { darkMode: boolean };
 
 type EventResponse = {
@@ -221,6 +223,17 @@ export default function CalendarSection({ darkMode }: CalendarSectionProps) {
     return () => document.removeEventListener("mousedown", fn);
   }, [pickerOpen]);
   useEffect(() => () => { clearTimeout(closeTimer.current); clearTimeout(fadeTimer.current); }, []);
+
+  useEffect(() => {
+  function handleDataCleared() {
+    // Instant UI feedback — clear local state immediately
+    setEvents({});
+    setSel(null);
+    setDraft("");
+  }
+  window.addEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+  return () => window.removeEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+}, []);
 
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();

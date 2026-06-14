@@ -12,59 +12,75 @@ import org.springframework.security.web.authentication.SimpleUrlAuthenticationSu
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 
 @Component
 public class OAuth2SuccessHandler
-        extends SimpleUrlAuthenticationSuccessHandler {
+                extends SimpleUrlAuthenticationSuccessHandler {
 
-    private final UserRepository userRepository;
-    private final JwtUtil jwtUtil;
-    private final RefreshTokenService refreshTokenService;
+        private final UserRepository userRepository;
+        private final JwtUtil jwtUtil;
+        private final RefreshTokenService refreshTokenService;
 
-    public OAuth2SuccessHandler(
-            UserRepository userRepository,
-            JwtUtil jwtUtil,
-            RefreshTokenService refreshTokenService) {
-        this.userRepository = userRepository;
-        this.jwtUtil = jwtUtil;
-        this.refreshTokenService = refreshTokenService;
-    }
+        public OAuth2SuccessHandler(
+                        UserRepository userRepository,
+                        JwtUtil jwtUtil,
+                        RefreshTokenService refreshTokenService) {
+                this.userRepository = userRepository;
+                this.jwtUtil = jwtUtil;
+                this.refreshTokenService = refreshTokenService;
+        }
 
-    @Override
-    public void onAuthenticationSuccess(
-            HttpServletRequest request,
-            HttpServletResponse response,
-            Authentication authentication)
-            throws IOException {
+        @Override
+        public void onAuthenticationSuccess(
+                        HttpServletRequest request,
+                        HttpServletResponse response,
+                        Authentication authentication)
+                        throws IOException {
 
-        OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
+                OAuth2User oAuth2User = (OAuth2User) authentication.getPrincipal();
 
-        String email = oAuth2User.getAttribute("email");
-        String name = oAuth2User.getAttribute("name");
-        String sub = oAuth2User.getAttribute("sub"); // Google
+                String email = oAuth2User.getAttribute("email");
+                String name = oAuth2User.getAttribute("name");
+                String picture = oAuth2User.getAttribute("picture"); // Google profile photo URL
+                String sub = oAuth2User.getAttribute("sub");
 
-        // Find existing user or create one
-        User user = userRepository.findByEmail(email)
-                .orElseGet(() -> userRepository.save(
-                        User.builder()
-                                .email(email)
-                                .name(name)
-                                .provider(AuthProvider.GOOGLE)
-                                .providerId(sub)
-                                .createdAt(LocalDateTime.now())
-                                .build()));
+                // Find existing user or create one; always update name & picture in case they
+                // changed
+                User user = userRepository.findByEmail(email)
+                                .map(existing -> {
+                                        existing.setName(name);
+                                        existing.setPicture(picture);
+                                        return userRepository.save(existing);
+                                })
+                                .orElseGet(() -> userRepository.save(
+                                                User.builder()
+                                                                .email(email)
+                                                                .name(name)
+                                                                .picture(picture)
+                                                                .provider(AuthProvider.GOOGLE)
+                                                                .providerId(sub)
+                                                                .createdAt(LocalDateTime.now())
+                                                                .build()));
 
-        String accessToken = jwtUtil.generateToken(email);
-        String refreshToken = refreshTokenService.createToken(user);
+                String accessToken = jwtUtil.generateToken(email);
+                String refreshToken = refreshTokenService.createToken(user);
 
-        // Redirect to frontend with tokens in query params
-        // (use httpOnly cookies in production instead)
-        String redirectUrl = "http://localhost:3000/oauth-callback"
-                + "?token=" + accessToken
-                + "&refresh=" + refreshToken;
+                // Pass name, email, and picture to the frontend so it can store them
+                // in localStorage without needing a separate /me API call.
+                String redirectUrl = "http://localhost:3000/oauth-callback"
+                                + "?token=" + encode(accessToken)
+                                + "&refresh=" + encode(refreshToken)
+                                + "&name=" + encode(name != null ? name : "")
+                                + "&email=" + encode(email != null ? email : "")
+                                + "&picture=" + encode(picture != null ? picture : "");
 
-        getRedirectStrategy()
-                .sendRedirect(request, response, redirectUrl);
-    }
+                getRedirectStrategy().sendRedirect(request, response, redirectUrl);
+        }
+
+        private String encode(String value) {
+                return URLEncoder.encode(value, StandardCharsets.UTF_8);
+        }
 }

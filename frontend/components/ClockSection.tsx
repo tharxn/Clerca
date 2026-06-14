@@ -1,6 +1,15 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+
+if (typeof document !== "undefined" && !document.getElementById("inter-clock-font")) {
+  const link = document.createElement("link");
+  link.id = "inter-clock-font";
+  link.rel = "stylesheet";
+  link.href = "https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap";
+  document.head.appendChild(link);
+}
+
 import { Clock, Timer, RotateCcw, Play, Pause, Search, X, Radio } from "lucide-react";
 
 type ClockSectionProps = { darkMode: boolean };
@@ -24,56 +33,47 @@ function getWeatherIcon(code: number, isDay: boolean) {
   }
 }
 
-// ── Flip digit ────────────────────────────────────────────────────────────────
-function FlipDigit({ digit, darkMode }: { digit: string; darkMode: boolean }) {
+// ── Slide digit (hours & minutes only) ───────────────────────────────────────
+function SlideDigit({ digit, darkMode }: { digit: string; darkMode: boolean }) {
   const [current, setCurrent] = useState(digit);
   const [prev, setPrev] = useState(digit);
-  const [flipping, setFlipping] = useState(false);
+  const [animating, setAnimating] = useState(false);
 
   useEffect(() => {
     if (digit !== current) {
       setPrev(current);
-      setFlipping(true);
-      const t = setTimeout(() => { setCurrent(digit); setFlipping(false); }, 280);
+      setAnimating(true);
+      const t = setTimeout(() => {
+        setCurrent(digit);
+        setAnimating(false);
+      }, 320);
       return () => clearTimeout(t);
     }
   }, [digit, current]);
 
-  const bg = darkMode ? "bg-zinc-800/70" : "bg-gray-100";
   const textCls = darkMode ? "text-white" : "text-zinc-900";
 
   return (
-    <div className="relative select-none flex-shrink-0" style={{ width: 48, height: 66 }}>
+    <div className="relative select-none flex-shrink-0 overflow-hidden"
+      style={{ width: "clamp(28px, 7vw, 40px)", height: "clamp(42px, 10.5vw, 62px)" }}>
       <style>{`
-        @keyframes ft{0%{transform:rotateX(0)}100%{transform:rotateX(-90deg)}}
-        @keyframes fb{0%{transform:rotateX(90deg)}100%{transform:rotateX(0)}}
-        .ft{animation:ft .28s ease-in forwards;transform-origin:bottom center}
-        .fb{animation:fb .28s ease-out forwards;transform-origin:top center}
+        @keyframes slideOutUp { 0% { transform: translateY(0); opacity: 1; } 100% { transform: translateY(-55%); opacity: 0; } }
+        @keyframes slideInUp  { 0% { transform: translateY(55%); opacity: 0; } 100% { transform: translateY(0); opacity: 1; } }
+        .slide-out { animation: slideOutUp 0.32s cubic-bezier(0.4,0,0.2,1) forwards; }
+        .slide-in  { animation: slideInUp  0.32s cubic-bezier(0.4,0,0.2,1) forwards; }
       `}</style>
-      <div className={`absolute inset-0 rounded-xl flex items-center justify-center overflow-hidden ${bg}`} style={{clipPath:"inset(50% 0 0 0)"}}>
-        <span className={`text-4xl font-bold tabular-nums ${textCls}`} style={{marginTop:-8}}>{current}</span>
-      </div>
-      <div className={`absolute inset-0 rounded-xl flex items-center justify-center overflow-hidden ${bg}`} style={{clipPath:"inset(0 0 50% 0)"}}>
-        <span className={`text-4xl font-bold tabular-nums ${textCls}`} style={{marginBottom:-8}}>{current}</span>
-      </div>
-      <div className={`absolute left-0 right-0 z-20 ${darkMode?"bg-zinc-900":"bg-white"}`} style={{top:"50%",height:1.5}}/>
-      {flipping && <>
-        <div className={`ft absolute inset-0 rounded-xl flex items-center justify-center overflow-hidden ${bg}`} style={{clipPath:"inset(0 0 50% 0)",zIndex:10}}>
-          <span className={`text-4xl font-bold tabular-nums ${textCls}`} style={{marginBottom:-8}}>{prev}</span>
-        </div>
-        <div className={`fb absolute inset-0 rounded-xl flex items-center justify-center overflow-hidden ${bg}`} style={{clipPath:"inset(50% 0 0 0)",zIndex:10}}>
-          <span className={`text-4xl font-bold tabular-nums ${textCls}`} style={{marginTop:-8}}>{current}</span>
-        </div>
-      </>}
-    </div>
-  );
-}
-
-function Sep({ dim, darkMode }: { dim?: boolean; darkMode: boolean }) {
-  return (
-    <div className="flex flex-col gap-1.5 items-center flex-shrink-0" style={{paddingBottom:6}}>
-      <div className={`w-1.5 h-1.5 rounded-full ${darkMode?"bg-zinc-500":"bg-gray-400"}${dim?" opacity-35":""}`}/>
-      <div className={`w-1.5 h-1.5 rounded-full ${darkMode?"bg-zinc-500":"bg-gray-400"}${dim?" opacity-35":""}`}/>
+      {animating && (
+        <span key={`prev-${prev}`}
+          className={`slide-out absolute inset-0 flex items-center justify-center ${textCls}`}
+          style={{ fontSize: "clamp(1.8rem, 8vw, 3.2rem)", fontFamily: "'Inter', sans-serif", fontWeight: 400, letterSpacing: "-0.04em" }}>
+          {prev}
+        </span>
+      )}
+      <span key={`cur-${current}-${animating}`}
+        className={`${animating ? "slide-in" : ""} absolute inset-0 flex items-center justify-center ${textCls}`}
+        style={{ fontSize: "clamp(1.8rem, 8vw, 3.2rem)", fontFamily: "'Inter', sans-serif", fontWeight: 400, letterSpacing: "-0.04em" }}>
+        {current}
+      </span>
     </div>
   );
 }
@@ -351,20 +351,37 @@ export default function ClockSection({ darkMode }: ClockSectionProps) {
 
         <div className="flex-shrink-0 min-w-0">
           {mode==="digital" && (
-            <div className="flex flex-col gap-2.5 min-w-0">
-              <div className="flex items-center gap-2 min-w-0 overflow-hidden">
-                <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <FlipDigit digit={hh[0]} darkMode={darkMode}/>
-                  <FlipDigit digit={hh[1]} darkMode={darkMode}/>
-                  <Sep darkMode={darkMode}/>
-                  <FlipDigit digit={mm[0]} darkMode={darkMode}/>
-                  <FlipDigit digit={mm[1]} darkMode={darkMode}/>
+            <div className="flex flex-col gap-3 min-w-0">
+              {/* Main time row */}
+              <div className="flex items-center gap-0 min-w-0 overflow-hidden">
+                {/* Hours */}
+                <div className="flex items-end gap-0 flex-shrink-0">
+                  <SlideDigit digit={hh[0]} darkMode={darkMode}/>
+                  <SlideDigit digit={hh[1]} darkMode={darkMode}/>
                 </div>
 
-                <div className={`flex flex-col items-center justify-center gap-1 self-center ml-1 flex-shrink-0 ${muted}`}>
-                  <span className="text-[10px] font-semibold uppercase tracking-widest leading-none">{ampm}</span>
-                  <span className="text-2xl font-bold tabular-nums leading-none">{ss}</span>
-                  <span className="text-[10px] uppercase tracking-widest leading-none">sec</span>
+                {/* Colon separator */}
+                <div className={`flex flex-col gap-1.5 items-center flex-shrink-0 mx-1.5 pb-1`}>
+                  <div className={`w-1 h-1 rounded-full ${darkMode?"bg-zinc-400":"bg-zinc-500"}`}/>
+                  <div className={`w-1 h-1 rounded-full ${darkMode?"bg-zinc-400":"bg-zinc-500"}`}/>
+                </div>
+
+                {/* Minutes */}
+                <div className="flex items-end gap-0 flex-shrink-0">
+                  <SlideDigit digit={mm[0]} darkMode={darkMode}/>
+                  <SlideDigit digit={mm[1]} darkMode={darkMode}/>
+                </div>
+
+                {/* Seconds + AM/PM stacked on the right */}
+                <div className="flex flex-col justify-end gap-0.5 self-end ml-3 pb-1 flex-shrink-0">
+                  <span className={`text-[11px] uppercase tracking-widest leading-none ${darkMode?"text-zinc-400":"text-zinc-500"}`}
+                    style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>{ampm}</span>
+                  <span className={`leading-none ${darkMode?"text-zinc-300":"text-zinc-600"}`}
+                    style={{ fontSize: "clamp(1.1rem, 4vw, 1.6rem)", fontFamily: "'Inter', sans-serif", fontWeight: 400, letterSpacing: "-0.03em" }}>
+                    {ss}
+                  </span>
+                  <span className={`text-[10px] uppercase tracking-widest leading-none ${darkMode?"text-zinc-600":"text-gray-400"}`}
+                    style={{ fontFamily: "'Inter', sans-serif", fontWeight: 400 }}>sec</span>
                 </div>
               </div>
 

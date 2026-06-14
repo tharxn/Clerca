@@ -3,8 +3,8 @@ package com.clerca.Backend.service;
 import com.clerca.Backend.dto.NoteRequest;
 import com.clerca.Backend.dto.NoteResponse;
 import com.clerca.Backend.entity.Note;
-import com.clerca.Backend.repository.NoteRepository;
 import com.clerca.Backend.exception.ResourceNotFoundException;
+import com.clerca.Backend.repository.NoteRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -26,18 +26,17 @@ public class NoteService {
             title = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
         }
         Note note = Note.builder()
-                .userEmail(userEmail)
                 .title(title)
                 .content(request.getContent())
                 .createdAt(LocalDateTime.now())
+                .userEmail(userEmail)
                 .build();
         return mapToResponse(noteRepository.save(note));
     }
 
     public List<NoteResponse> getAllNotes(String userEmail) {
-        return noteRepository.findByUserEmail(userEmail).stream()
-                .map(this::mapToResponse)
-                .toList();
+        return noteRepository.findByUserEmail(userEmail)
+                .stream().map(this::mapToResponse).toList();
     }
 
     public NoteResponse getNoteById(Long id, String userEmail) {
@@ -49,11 +48,7 @@ public class NoteService {
     public NoteResponse updatedNote(Long id, NoteRequest request, String userEmail) {
         Note note = noteRepository.findByIdAndUserEmail(id, userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
-        String title = request.getTitle();
-        if (title == null || title.trim().isEmpty()) {
-            title = LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy"));
-        }
-        note.setTitle(title);
+        note.setTitle(request.getTitle());
         note.setContent(request.getContent());
         return mapToResponse(noteRepository.save(note));
     }
@@ -62,6 +57,11 @@ public class NoteService {
         Note note = noteRepository.findByIdAndUserEmail(id, userEmail)
                 .orElseThrow(() -> new ResourceNotFoundException("Note not found"));
         noteRepository.delete(note);
+    }
+
+    // Called by Settings → Clear all data
+    public void deleteAllNotes(String userEmail) {
+        noteRepository.deleteAllByUserEmail(userEmail);
     }
 
     private NoteResponse mapToResponse(Note note) {

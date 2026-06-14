@@ -18,21 +18,18 @@ public class TodoController {
 
     private final TodoService todoService;
 
-    // Returns only the authenticated user's active (not completed) todos
     @GetMapping("/active")
     public ResponseEntity<List<TodoResponse>> getActiveTodos(
             @AuthenticationPrincipal String email) {
         return ResponseEntity.ok(todoService.getActiveTodos(email));
     }
 
-    // Returns only the authenticated user's completed todos
     @GetMapping("/completed")
     public ResponseEntity<List<TodoResponse>> getCompletedTodos(
             @AuthenticationPrincipal String email) {
         return ResponseEntity.ok(todoService.getCompletedTodos(email));
     }
 
-    // Returns only the authenticated user's missed todos (past due, not completed)
     @GetMapping("/missed")
     public ResponseEntity<List<TodoResponse>> getMissedTodos(
             @AuthenticationPrincipal String email) {
@@ -67,6 +64,14 @@ public class TodoController {
             @PathVariable Long id,
             @AuthenticationPrincipal String email) {
         todoService.deleteTodo(id, email);
+        return ResponseEntity.noContent().build();
+    }
+
+    // Called by Settings → Clear all data
+    @DeleteMapping("/all")
+    public ResponseEntity<Void> deleteAllTodos(
+            @AuthenticationPrincipal String email) {
+        todoService.deleteAllTodos(email);
         return ResponseEntity.noContent().build();
     }
 }

@@ -24,6 +24,9 @@ public class User {
 
     private String name;
 
+    // Google profile photo URL — null for LOCAL users
+    private String picture;
+
     @Enumerated(EnumType.STRING)
     private AuthProvider provider;
 

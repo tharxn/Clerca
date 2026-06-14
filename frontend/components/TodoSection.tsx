@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import LoginModal from "./LoginModal";
 
+import { DATA_CLEARED_EVENT } from "@/components/SettingsModal";
+
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080";
 
 type TodoSectionProps = { darkMode: boolean };
@@ -116,6 +118,19 @@ export default function TodoSection({ darkMode }: TodoSectionProps) {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [view]);
 
+  useEffect(() => {
+  function handleDataCleared() {
+    // Instant UI feedback — clear local state immediately
+    setTodos([]);
+    setEditingTodo(null);
+    setMenuState(null);
+    setUndoToast(null);
+    setIsCreating(false);
+  }
+  window.addEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+  return () => window.removeEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+}, []);
+
   async function fetchTodos() {
     setLoading(true); setError(null);
     try {
@@ -129,7 +144,7 @@ export default function TodoSection({ darkMode }: TodoSectionProps) {
   }
 
   async function handleCreate() {
-    if (requireLogin("Log in to create todos.")) return;
+    if (requireLogin("Log in to create tasks.")) return;
     if (!newTitle.trim()) return;
     setSaving(true);
     try {
@@ -295,7 +310,7 @@ export default function TodoSection({ darkMode }: TodoSectionProps) {
       `}>
         {/* HEADER */}
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
-          <h2 className="text-xl font-semibold">To Do</h2>
+          <h2 className="text-xl font-semibold">Tasks</h2>
           <div className="flex items-center gap-2">
             {/* Completed */}
             <div className="relative group">
@@ -329,11 +344,11 @@ export default function TodoSection({ darkMode }: TodoSectionProps) {
             {view === "active" && (
               <div className="relative group">
                 <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 rounded-md text-[11px] whitespace-nowrap opacity-0 pointer-events-none transition-all duration-200 group-hover:opacity-100 ${dm ? "bg-zinc-800 text-zinc-200 border border-zinc-700" : "bg-black text-white"}`}>
-                  Add Todo
+                  Add Task
                   <span className={`absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent ${dm ? "border-t-zinc-800" : "border-t-black"}`} />
                 </div>
                 <button
-                  onClick={() => { if (requireLogin("Log in to create todos.")) return; setIsCreating(true); }}
+                  onClick={() => { if (requireLogin("Log in to create tasks.")) return; setIsCreating(true); }}
                   className={`w-9 h-9 rounded-xl flex items-center justify-center ${dm ? "bg-black hover:bg-zinc-800" : "bg-gray-100 hover:bg-gray-200"}`}
                 >
                   <Plus size={18} />
@@ -406,7 +421,7 @@ export default function TodoSection({ darkMode }: TodoSectionProps) {
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center">
               <p className={`text-lg font-medium mb-2 ${dm ? "text-zinc-300" : "text-gray-700"}`}>Stay organised</p>
-              <p className={`text-sm mb-4 ${dm ? "text-zinc-500" : "text-gray-500"}`}>Log in to manage your todos</p>
+              <p className={`text-sm mb-4 ${dm ? "text-zinc-500" : "text-gray-500"}`}>Log in to manage your tasks</p>
               <button onClick={() => setShowLoginModal(true)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium ${dm ? "bg-white text-black" : "bg-black text-white"}`}>
                 Log in

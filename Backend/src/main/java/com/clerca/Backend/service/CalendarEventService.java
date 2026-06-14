@@ -14,66 +14,70 @@ import java.util.List;
 @Service
 public class CalendarEventService {
 
-    private final CalendarEventRepository repo;
+    private final CalendarEventRepository repository;
 
-    public CalendarEventService(CalendarEventRepository repo) {
-        this.repo = repo;
+    public CalendarEventService(CalendarEventRepository repository) {
+        this.repository = repository;
     }
 
     public CalendarEventResponse createEvent(CalendarEventRequest req, String userEmail) {
-        // One event per date per user — reject duplicates
-        repo.findByUserEmailAndEventDate(userEmail, req.getEventDate()).ifPresent(existing -> {
-            throw new IllegalArgumentException(
-                    "An event already exists for " + req.getEventDate() + ". Use PUT to update it.");
-        });
-
-        CalendarEvent saved = repo.save(CalendarEvent.builder()
+        CalendarEvent event = CalendarEvent.builder()
                 .userEmail(userEmail)
                 .eventDate(req.getEventDate())
                 .text(req.getText())
                 .color(req.getColor())
-                .build());
-        return toResponse(saved);
+                .build();
+        return mapToResponse(repository.save(event));
     }
 
     public CalendarEventResponse getEventById(Long id, String userEmail) {
-        CalendarEvent event = repo.findByIdAndUserEmail(id, userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
-        return toResponse(event);
+        CalendarEvent event = repository.findByIdAndUserEmail(id, userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        return mapToResponse(event);
     }
 
     public CalendarEventResponse getEventByDate(LocalDate date, String userEmail) {
-        CalendarEvent event = repo.findByUserEmailAndEventDate(userEmail, date)
-                .orElseThrow(() -> new ResourceNotFoundException("No event on " + date));
-        return toResponse(event);
+        CalendarEvent event = repository.findByUserEmailAndEventDate(userEmail, date)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        return mapToResponse(event);
     }
 
     public List<CalendarEventResponse> getEventsByMonth(int year, int month, String userEmail) {
         YearMonth ym = YearMonth.of(year, month);
-        return repo.findByUserEmailAndEventDateBetween(userEmail, ym.atDay(1), ym.atEndOfMonth())
-                .stream().map(this::toResponse).toList();
+        LocalDate start = ym.atDay(1);
+        LocalDate end = ym.atEndOfMonth();
+        return repository.findByUserEmailAndEventDateBetween(userEmail, start, end)
+                .stream().map(this::mapToResponse).toList();
     }
 
     public CalendarEventResponse updateEvent(Long id, CalendarEventRequest req, String userEmail) {
-        CalendarEvent event = repo.findByIdAndUserEmail(id, userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
+        CalendarEvent event = repository.findByIdAndUserEmail(id, userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+
+        event.setEventDate(req.getEventDate());
         event.setText(req.getText());
         event.setColor(req.getColor());
-        return toResponse(repo.save(event));
+
+        return mapToResponse(repository.save(event));
     }
 
     public void deleteEvent(Long id, String userEmail) {
-        CalendarEvent event = repo.findByIdAndUserEmail(id, userEmail)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found with id: " + id));
-        repo.delete(event);
+        CalendarEvent event = repository.findByIdAndUserEmail(id, userEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        repository.delete(event);
     }
 
-    private CalendarEventResponse toResponse(CalendarEvent e) {
+    // Called by Settings → Clear all data
+    public void deleteAllEvents(String userEmail) {
+        repository.deleteAllByUserEmail(userEmail);
+    }
+
+    private CalendarEventResponse mapToResponse(CalendarEvent event) {
         return CalendarEventResponse.builder()
-                .id(e.getId())
-                .eventDate(e.getEventDate())
-                .text(e.getText())
-                .color(e.getColor())
+                .id(event.getId())
+                .eventDate(event.getEventDate())
+                .text(event.getText())
+                .color(event.getColor())
                 .build();
     }
 }

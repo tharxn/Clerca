@@ -3,8 +3,7 @@ package com.clerca.Backend.security;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -24,8 +23,10 @@ public class SecurityConfig {
         private final JwtAuthFilter jwtAuthFilter;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
+        // AuthenticationManager bean is removed — it was the root of the circular
+        // proxy loop. AuthService no longer injects it; it authenticates directly.
         public SecurityConfig(JwtAuthFilter jwtAuthFilter,
-                        OAuth2SuccessHandler oAuth2SuccessHandler) {
+                        @Lazy OAuth2SuccessHandler oAuth2SuccessHandler) {
                 this.jwtAuthFilter = jwtAuthFilter;
                 this.oAuth2SuccessHandler = oAuth2SuccessHandler;
         }
@@ -37,17 +38,12 @@ public class SecurityConfig {
                                 .csrf(csrf -> csrf.disable())
                                 .sessionManagement(session -> session
                                                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-
                                 .authorizeHttpRequests(auth -> auth
                                                 .requestMatchers(org.springframework.http.HttpMethod.OPTIONS, "/**")
                                                 .permitAll()
                                                 .requestMatchers("/api/auth/**", "/oauth2/**", "/login/**", "/")
                                                 .permitAll()
                                                 .anyRequest().authenticated())
-
-                                // ── KEY FIX: return 401 JSON instead of redirecting to Google ──
-                                // Without this, Spring redirects unauthenticated API requests to
-                                // Google OAuth, which browsers block as a CORS violation
                                 .exceptionHandling(ex -> ex
                                                 .authenticationEntryPoint((request, response, authException) -> {
                                                         response.setStatus(401);
@@ -58,12 +54,9 @@ public class SecurityConfig {
                                                                                                         "message",
                                                                                                         "Token missing or expired")));
                                                 }))
-
                                 .oauth2Login(oauth -> oauth
                                                 .successHandler(oAuth2SuccessHandler))
-
-                                .addFilterBefore(jwtAuthFilter,
-                                                UsernamePasswordAuthenticationFilter.class);
+                                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
 
                 return http.build();
         }
@@ -77,7 +70,6 @@ public class SecurityConfig {
                                 "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));
                 config.setAllowCredentials(true);
                 config.setMaxAge(3600L);
-
                 UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
                 source.registerCorsConfiguration("/**", config);
                 return source;
@@ -86,11 +78,5 @@ public class SecurityConfig {
         @Bean
         public PasswordEncoder passwordEncoder() {
                 return new BCryptPasswordEncoder(12);
-        }
-
-        @Bean
-        public AuthenticationManager authenticationManager(
-                        AuthenticationConfiguration config) throws Exception {
-                return config.getAuthenticationManager();
         }
 }

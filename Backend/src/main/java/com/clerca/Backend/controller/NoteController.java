@@ -19,10 +19,6 @@ public class NoteController {
         this.noteService = noteService;
     }
 
-    // @AuthenticationPrincipal String email — your JwtAuthFilter sets a String
-    // (the email/subject) as the principal, NOT a UserDetails object.
-    // Using UserDetails here was causing the NullPointerException → HTTP 500.
-
     @PostMapping
     public NoteResponse createNote(
             @Valid @RequestBody NoteRequest request,
@@ -57,5 +53,12 @@ public class NoteController {
             @AuthenticationPrincipal String email) {
         noteService.deleteNote(id, email);
         return "Note deleted successfully";
+    }
+
+    // Called by Settings → Clear all data
+    @DeleteMapping("/all")
+    public String deleteAllNotes(@AuthenticationPrincipal String email) {
+        noteService.deleteAllNotes(email);
+        return "All notes deleted";
     }
 }

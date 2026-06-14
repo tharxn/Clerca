@@ -1,28 +1,34 @@
 "use client";
 
 import { useEffect } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 export default function OAuthCallback() {
   const router = useRouter();
-  const params = useSearchParams();
 
   useEffect(() => {
-    const token = params.get("token");
-    const refresh = params.get("refresh");
+    const params = new URLSearchParams(window.location.search);
 
-    if (token && refresh) {
-      localStorage.setItem("accessToken", token);
-      localStorage.setItem("refreshToken", refresh);
-      router.push("/");
-    } else {
-      router.push("/login");
+    const token   = params.get("token");
+    const refresh = params.get("refresh");
+    const name    = params.get("name");
+    const email   = params.get("email");
+    const picture = params.get("picture");
+
+    if (token) {
+      localStorage.setItem("accessToken",  token);
+      localStorage.setItem("refreshToken", refresh ?? "");
+      localStorage.setItem("userName",     name    ?? "");
+      localStorage.setItem("userEmail",    email   ?? "");
+      localStorage.setItem("userPicture",  picture ?? "");
     }
+
+    router.replace("/"); // redirect to dashboard
   }, []);
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <p className="text-sm text-gray-500">Signing you in...</p>
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", height: "100vh" }}>
+      <p style={{ fontFamily: "sans-serif", color: "#888" }}>Signing you in…</p>
     </div>
   );
 }

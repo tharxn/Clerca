@@ -37,16 +37,17 @@ export default function LoginModal({ darkMode, message, onClose }: LoginModalPro
           <X size={18} />
         </button>
 
-        {/* Lock icon */}
-        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center mb-4
-          ${darkMode ? "bg-zinc-800" : "bg-gray-100"}`}>
-          <span className="text-2xl">🔒</span>
+        <div className="flex gap-3">
+            {/* Lock icon */}
+          <div>
+            <h2 className="text-lg font-semibold mb-1">Login required</h2>
+            <p className={`text-sm mb-5 ${darkMode ? "text-zinc-400" : "text-gray-500"}`}>
+            {message ?? "Please log in to continue."}
+            </p>
+          </div>
         </div>
-
-        <h2 className="text-lg font-semibold mb-1">Login required</h2>
-        <p className={`text-sm mb-5 ${darkMode ? "text-zinc-400" : "text-gray-500"}`}>
-          {message ?? "Please log in to continue."}
-        </p>
+        
+        
 
         <div className="flex gap-2">
           <button
