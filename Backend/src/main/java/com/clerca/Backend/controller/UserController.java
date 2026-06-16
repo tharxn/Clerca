@@ -20,7 +20,6 @@ public class UserController {
         this.userRepository = userRepository;
     }
 
-    // GET /api/user/profile — returns full profile including createdAt from DB
     @GetMapping("/profile")
     public ResponseEntity<UserProfileResponse> getProfile(
             @AuthenticationPrincipal String email) {
@@ -29,7 +28,6 @@ public class UserController {
         return ResponseEntity.ok(toResponse(user));
     }
 
-    // PUT /api/user/profile — updates display name only
     @PutMapping("/profile")
     public ResponseEntity<UserProfileResponse> updateProfile(
             @AuthenticationPrincipal String email,
@@ -49,7 +47,7 @@ public class UserController {
                 .name(user.getName())
                 .email(user.getEmail())
                 .picture(user.getPicture())
-                .createdAt(user.getCreatedAt()) // real DB value
+                .createdAt(user.getCreatedAt())
                 .build();
     }
 }

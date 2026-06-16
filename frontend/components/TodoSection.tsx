@@ -119,56 +119,70 @@ export default function TodoSection({ darkMode }: TodoSectionProps) {
   }, [view]);
 
   useEffect(() => {
-  function handleDataCleared() {
-    // Instant UI feedback — clear local state immediately
-    setTodos([]);
-    setEditingTodo(null);
-    setMenuState(null);
-    setUndoToast(null);
-    setIsCreating(false);
-  }
-  window.addEventListener(DATA_CLEARED_EVENT, handleDataCleared);
-  return () => window.removeEventListener(DATA_CLEARED_EVENT, handleDataCleared);
-}, []);
+    function handleDataCleared() {
+      // Instant UI feedback — clear local state immediately
+      setTodos([]);
+      setEditingTodo(null);
+      setMenuState(null);
+      setUndoToast(null);
+      setIsCreating(false);
+    }
+    window.addEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+    return () => window.removeEventListener(DATA_CLEARED_EVENT, handleDataCleared);
+  }, []);
 
   async function fetchTodos() {
-    setLoading(true); setError(null);
-    try {
-      const res = await fetch(`${API_BASE}/api/todos/${view}`, { headers: authHeaders() });
-      if (res.status === 401) { localStorage.clear(); window.location.href = "/login"; return; }
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      setTodos(await res.json());
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to load todos");
-    } finally { setLoading(false); }
-  }
+  setLoading(true); setError(null);
+  try {
+    const res = await fetch(`${API_BASE}/api/todos/${view}`, { headers: authHeaders() });
+    if (res.status === 401) {
+      const guestMode = localStorage.getItem("guestMode");
+      if (!guestMode) {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
+      setTodos([]);
+      return;
+    }
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    setTodos(await res.json());
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to load todos");
+  } finally { setLoading(false); }
+}
 
   async function handleCreate() {
-    if (requireLogin("Log in to create tasks.")) return;
-    if (!newTitle.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_BASE}/api/todos`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          title: newTitle.trim(),
-          description: newDesc.trim() || null,
-          priority: newPriority,
-          dueDate: newDueDate || null,
-        }),
-      });
-      if (res.status === 401) { localStorage.clear(); window.location.href = "/login"; return; }
-      if (!res.ok) throw new Error("Failed to create");
-      const created: Todo = await res.json();
-      // Only prepend if we're on the active tab (where this new todo belongs)
-      if (view === "active") setTodos((prev) => [created, ...prev]);
-      setNewTitle(""); setNewDesc(""); setNewPriority("MEDIUM"); setNewDueDate("");
-      setIsCreating(false);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create todo");
-    } finally { setSaving(false); }
-  }
+  if (requireLogin("Log in to create tasks.")) return;
+  if (!newTitle.trim()) return;
+  setSaving(true);
+  try {
+    const res = await fetch(`${API_BASE}/api/todos`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        title: newTitle.trim(),
+        description: newDesc.trim() || null,
+        priority: newPriority,
+        dueDate: newDueDate || null,
+      }),
+    });
+    if (res.status === 401) {
+      const guestMode = localStorage.getItem("guestMode");
+      if (!guestMode) {
+        localStorage.clear();
+        window.location.href = "/login";
+      }
+      return;
+    }
+    if (!res.ok) throw new Error("Failed to create");
+    const created: Todo = await res.json();
+    if (view === "active") setTodos((prev) => [created, ...prev]);
+    setNewTitle(""); setNewDesc(""); setNewPriority("MEDIUM"); setNewDueDate("");
+    setIsCreating(false);
+  } catch (err) {
+    setError(err instanceof Error ? err.message : "Failed to create todo");
+  } finally { setSaving(false); }
+}
 
   async function handleToggleComplete(todo: Todo) {
     if (todo.completed) {

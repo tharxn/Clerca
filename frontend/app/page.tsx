@@ -119,9 +119,6 @@ function ProfileMenu({
 
   async function handleLogout() {
     await logoutUser();
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userPicture");
     router.push("/login");
   }
 
@@ -227,6 +224,7 @@ function ProfileMenu({
 
 // ── Page ──────────────────────────────────────────────────────────────────────
 export default function Home() {
+  const router = useRouter();
   const [darkMode, setDarkMode]         = useState(true);
   const [mounted, setMounted]           = useState(false);
   const [showProfile, setShowProfile]   = useState(false);
@@ -235,6 +233,14 @@ export default function Home() {
   const [profileRefreshKey, setProfileRefreshKey] = useState(0);
 
   useEffect(() => {
+    // ── Auth guard: redirect to /login if no valid session ──
+    const token = localStorage.getItem("accessToken");
+    const skipped = localStorage.getItem("guestMode");
+    if ((!token || token === "null" || token === "undefined") && !skipped) {
+      router.replace("/login");
+      return;
+    }
+
     const saved = localStorage.getItem("theme") as Theme | null;
     if (saved === "light" || saved === "dark" || saved === "system") {
       setTheme(saved);
@@ -245,7 +251,7 @@ export default function Home() {
       }
     }
     setMounted(true);
-  }, []);
+  }, [router]);
 
   function handleToggle() {
     setDarkMode(prev => {

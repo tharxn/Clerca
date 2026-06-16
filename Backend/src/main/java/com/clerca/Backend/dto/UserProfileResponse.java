@@ -11,5 +11,5 @@ public class UserProfileResponse {
     private String name;
     private String email;
     private String picture;
-    private LocalDateTime createdAt; // was missing — caused wrong join date in UI
+    private LocalDateTime createdAt; 
 }

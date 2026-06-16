@@ -23,8 +23,6 @@ public class SecurityConfig {
         private final JwtAuthFilter jwtAuthFilter;
         private final OAuth2SuccessHandler oAuth2SuccessHandler;
 
-        // AuthenticationManager bean is removed — it was the root of the circular
-        // proxy loop. AuthService no longer injects it; it authenticates directly.
         public SecurityConfig(JwtAuthFilter jwtAuthFilter,
                         @Lazy OAuth2SuccessHandler oAuth2SuccessHandler) {
                 this.jwtAuthFilter = jwtAuthFilter;
@@ -64,7 +62,9 @@ public class SecurityConfig {
         @Bean
         public CorsConfigurationSource corsConfigurationSource() {
                 CorsConfiguration config = new CorsConfiguration();
-                config.setAllowedOrigins(List.of("http://localhost:3000"));
+                config.setAllowedOrigins(List.of(
+                                "http://localhost:3000",
+                                "https://clerca-frontend.vercel.app"));
                 config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
                 config.setAllowedHeaders(List.of(
                                 "Authorization", "Content-Type", "Accept", "Origin", "X-Requested-With"));

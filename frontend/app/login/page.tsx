@@ -36,13 +36,14 @@ export default function LoginPage() {
   }
 
   function handleSkip() {
-    localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
-    localStorage.removeItem("userName");
-    localStorage.removeItem("userEmail");
-    localStorage.removeItem("userPicture");
-    router.push("/");
-  }
+  localStorage.removeItem("accessToken");
+  localStorage.removeItem("refreshToken");
+  localStorage.removeItem("userName");
+  localStorage.removeItem("userEmail");
+  localStorage.removeItem("userPicture");
+  localStorage.setItem("guestMode", "true");
+  router.push("/");
+}
 
   return (
     <div className="min-h-screen bg-black flex items-center justify-center px-4 py-12"
@@ -219,7 +220,7 @@ export default function LoginPage() {
 
           {/* Google */}
           <a
-            href="http://localhost:8080/oauth2/authorization/google"
+            href={`${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8080"}/oauth2/authorization/google`}
             className="w-full py-2.5 rounded-lg border border-zinc-900 text-zinc-500 text-sm flex items-center justify-center gap-2 hover:border-zinc-700 hover:text-zinc-300 transition-colors mt-2.5 mb-2"
             style={{ textDecoration: "none", fontFamily: "inherit" }}>
             <svg width="15" height="15" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">

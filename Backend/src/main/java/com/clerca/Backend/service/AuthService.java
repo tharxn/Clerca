@@ -18,9 +18,7 @@ public class AuthService {
         private final JwtUtil jwtUtil;
         private final RefreshTokenService refreshTokenService;
 
-        // AuthenticationManager removed — it caused a circular proxy loop.
-        // We authenticate manually: load user → verify password → check enabled.
-        // This is exactly what DaoAuthenticationProvider does internally.
+        
         public AuthService(UserRepository userRepository,
                         PasswordEncoder passwordEncoder,
                         JwtUtil jwtUtil,
@@ -81,7 +79,6 @@ public class AuthService {
                 refreshTokenService.revokeAllForUser(user);
         }
 
-        // /api/auth/me — lightweight profile used by navbar on page load
         public UserProfileResponse getProfile(String email) {
                 User user = userRepository.findByEmail(email).orElseThrow();
                 return UserProfileResponse.builder()

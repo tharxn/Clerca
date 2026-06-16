@@ -28,7 +28,6 @@ public class GlobalExceptionHandler {
         while (cause.getCause() != null && cause.getCause() != cause) {
             cause = cause.getCause();
         }
-        // Never expose internal error details to the client
         String message = (cause instanceof StackOverflowError)
                 ? "An internal server error occurred. Please try again later."
                 : (ex.getMessage() != null ? ex.getMessage() : "Unexpected error");

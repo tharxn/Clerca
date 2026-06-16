@@ -18,10 +18,8 @@ public class WeatherService {
                 "https://api.open-meteo.com/v1/forecast?latitude=%s&longitude=%s&current_weather=true",
                 lat, lon);
 
-        // Step 1: get raw JSON string
         String raw = restTemplate.getForObject(url, String.class);
 
-        // Step 2: parse the string into a tree
         JsonNode response;
         try {
             response = objectMapper.readTree(raw);
