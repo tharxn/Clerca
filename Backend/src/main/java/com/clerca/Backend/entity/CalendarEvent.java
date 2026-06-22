@@ -17,7 +17,6 @@ public class CalendarEvent {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // The email/subject from the JWT — scopes this event to one user
     @Column(nullable = false)
     private String userEmail;
 
